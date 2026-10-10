@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Bot Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            background: #07060e;
+            font-family: 'Inter', -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            color: #f5f0ff;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        /* ============================================ */
+        /* INTRO OVERLAY — FULL VIDEO */
+        /* ============================================ */
+        #introOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #0a080f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform, opacity;
+            overflow: hidden;
+        }
+
+        #introOverlay.hide {
+            opacity: 0;
+            transform: scale(1.05);
+            pointer-events: none;
+        }
+
+        /* Video Fullscreen */
+        #introVideo {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        /* Overlay gelap tipis biar lebih cinematic */
+        .intro-video-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        /* Progress bar di bawah video */
+        .intro-progress-wrap {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 320px;
+            max-width: 80vw;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            z-index: 2;
+            opacity: 0.6;
+        }
+
+        .intro-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #00ff66, #00cc55, #00ff66);
+            background-size: 200% 100%;
+            border-radius: 4px;
+            animation: progressFill 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards, shimmer 1.5s linear infinite;
+            box-shadow: 0 0 20px rgba(0, 255, 100, 0.2);
+        }
+
+        @keyframes progressFill {
+            0% { width: 0%; }
+            20% { width: 15%; }
+            40% { width: 35%; }
+            60% { width: 58%; }
+            80% { width: 82%; }
+            100% { width: 100%; }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+
+        /* ============================================ */
+        /* AMBIENT BG */
+        /* ============================================ */
+        .ambient-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 255, 100, 0.06), transparent 45%),
+                radial-gradient(circle at 80% 70%, rgba(0, 255, 100, 0.03), transparent 35%),
+                radial-gradient(circle at 50% 80%, rgba(0, 200, 80, 0.04), transparent 40%);
+            filter: blur(80px);
+            animation: ambientPulse 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes ambientPulse {
+            0% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+            100% { transform: scale(1.2) rotate(3deg); opacity: 1; }
+        }
+
+        /* ============================================ */
+        /* FLOATING BUBBLES */
+        /* ============================================ */
+        .bubbles {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 255, 100, 0.06), rgba(0, 255, 100, 0.01));
+            border: 1px solid rgba(0, 255, 100, 0.04);
+            animation: floatBubble linear infinite;
+            backdrop-filter: blur(2px);
+        }
+        .bubble:nth-child(1) { width: 120px; height: 120px; left: 5%; bottom: -120px; animation-duration: 18s; animation-delay: 0s; }
+        .bubble:nth-child(2) { width: 80px; height: 80px; left: 25%; bottom: -80px; animation-duration: 22s; animation-delay: 2s; }
+        .bubble:nth-child(3) { width: 150px; height: 150px; right: 10%; bottom: -150px; animation-duration: 25s; animation-delay: 4s; }
+        .bubble:nth-child(4) { width: 60px; height: 60px; right: 30%; bottom: -60px; animation-duration: 16s; animation-delay: 1s; }
+        .bubble:nth-child(5) { width: 100px; height: 100px; left: 50%; bottom: -100px; animation-duration: 20s; animation-delay: 3s; }
+
+        @keyframes floatBubble {
+            0% { transform: translateY(0) scale(0.8) rotate(0deg); opacity: 0.2; }
+            20% { opacity: 0.5; }
+            80% { opacity: 0.5; }
+            100% { transform: translateY(-120vh) scale(1.2) rotate(720deg); opacity: 0; }
+        }
+
+        /* ============================================ */
+        /* WORKSPACE */
+        /* ============================================ */
+        .workspace-wrapper {
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            padding: 10px 0 30px 0;
+        }
+
+        .workspace {
+            background: rgba(28, 24, 48, 0.6);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            padding: 32px 28px;
+            border-radius: 28px;
+            width: 100%;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(0, 255, 100, 0.06);
+            border: 1px solid rgba(0, 255, 100, 0.04);
+            opacity: 0;
+            transform: translateY(20px) scale(0.96);
+            transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+            transition-delay: 0.3s;
+            min-height: 600px;
+        }
+
+        .workspace.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* ============================================ */
+        /* NAVIGATION */
+        /* ============================================ */
+        .nav-container {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 32px;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 6px;
+            border-radius: 100px;
+            border: 1px solid rgba(0, 255, 100, 0.08);
+            backdrop-filter: blur(16px);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .nav-container::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            flex: 1;
+            min-width: max-content;
+            background: transparent;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 100px;
+            color: #a8a0c0;
+            font-weight: 500;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.02em;
+            position: relative;
+            white-space: nowrap;
+            will-change: transform, background, color;
+        }
+        .tab-btn i { 
+            width: 16px; 
+            height: 16px; 
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform;
+        }
+        .tab-btn:hover { 
+            color: #f5f0ff; 
+            background: rgba(255,255,255,0.03); 
+            transform: translateY(-1px);
+        }
+        .tab-btn.active {
+            background: rgba(0, 255, 100, 0.12);
+            color: #00ff66;
+            box-shadow: 0 0 40px rgba(0, 255, 100, 0.05), inset 0 1px 0 rgba(0, 255, 100, 0.1);
+            border: 1px solid rgba(0, 255, 100, 0.15);
+            transform: translateY(-2px);
+        }
+        .tab-btn.active i {
+            transform: scale(1.15);
+            filter: drop-shadow(0 0 12px rgba(0, 255, 100, 0.3));
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 3px;
+            background: #00ff66;
+            border-radius: 4px;
+            box-shadow: 0 0 30px rgba(0, 255, 100, 0.4);
+            animation: glowPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.5; transform: translateX(-50%) scaleX(1); }
+            50% { opacity: 1; transform: translateX(-50%) scaleX(1.3); }
+        }
+
+        /* ============================================ */
+        /* VIEW PANELS */
+        /* ============================================ */
+        .view-panel {
+            animation: bubblePop 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            will-change: transform, opacity;
+        }
+
+        @keyframes bubblePop {
+            0% { opacity: 0; transform: scale(0.92) translateY(20px); filter: blur(8px); }
+            40% { transform: scale(1.02) translateY(-4px); filter: blur(0); }
+            100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+
+        .hidden { display: none !important; }
+
+        /* ============================================ */
+        /* TYPOGRAPHY & COMPONENTS */
+        /* ============================================ */
+        .header-section { margin-bottom: 28px; position: relative; }
+        .header-section::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, #00ff66, transparent);
+            border-radius: 4px;
+        }
+        .header-section h2 { 
+            font-weight: 600; 
+            font-size: 20px; 
+            letter-spacing: -0.02em;
+            margin-bottom: 4px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        .header-section h2 i { color: #00ff66; width: 20px; height: 20px; filter: drop-shadow(0 0 8px rgba(0, 255, 100, 0.2)); }
+        .header-section p { color: #a8a0c0; font-size: 13px; line-height: 1.6; font-weight: 300; }
+
+        label { 
+            display: block; 
+            font-size: 11px; 
+            font-weight: 600; 
+            color: #a8a0c0; 
+            margin-bottom: 6px; 
+            letter-spacing: 0.06em; 
+            text-transform: uppercase;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+        label:hover { opacity: 0.9; }
+
+        input[type="text"], input[type="file"], textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(0, 255, 100, 0.08);
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: #f5f0ff;
+            font-size: 13px;
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            font-family: 'Inter', sans-serif;
+            resize: none;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            will-change: transform, border-color, box-shadow;
+        }
+        input[type="file"] { padding: 9px 12px; font-size: 12px; color: #a8a0c0; cursor: pointer; }
+        input[type="file"]::file-selector-button {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(0, 255, 100, 0.08);
+            color: #f5f0ff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            margin-right: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        input[type="file"]::file-selector-button:hover { background: rgba(255,255,255,0.08); border-color: rgba(0, 255, 100, 0.2); }
+        input.mono { font-family: 'Fira Code', monospace; letter-spacing: -0.02em; }
+        input:focus, textarea:focus { 
+            outline: none; 
+            border-color: #00ff66; 
+            background: rgba(0,0,0,0.35);
+            box-shadow: 0 0 0 3px rgba(0, 255, 100, 0.06), inset 0 2px 8px rgba(0,0,0,0.3);
+            transform: scale(1.005);
+        }
+        input::placeholder, textarea::placeholder { color: #6a6288; }
+
+        .input-group { display: flex; gap: 8px; margin-bottom: 20px; flex-direction: column; }
+        .input-row { display: flex; gap: 8px; }
+
+        /* Buttons */
+        button {
+            border: 1px solid transparent;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            backdrop-filter: blur(4px);
+            position: relative;
+            overflow: hidden;
+            will-change: transform, background, box-shadow;
+        }
+        button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 255, 100, 0.08), transparent 60%);
+            opacity: 0;
+            transition: opacity 0.4s;
+            pointer-events: none;
+        }
+        button:hover::before { opacity: 1; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+        button.primary { 
+            background: linear-gradient(145deg, rgba(0, 255, 100, 0.2), rgba(0, 200, 80, 0.15));
+            color: #00ff66; 
+            border: 1px solid rgba(0, 255, 100, 0.15);
+            box-shadow: 0 4px 24px rgba(0, 255, 100, 0.05);
+        }
+        button.primary:hover:not(:disabled) { 
+            background: linear-gradient(145deg, rgba(0, 255, 100, 0.3), rgba(0, 200, 80, 0.2));
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 40px rgba(0, 255, 100, 0.1);
+        }
+        button.primary:active:not(:disabled) { transform: scale(0.98); }
+
+        button.secondary { background: rgba(255,255,255,0.03); color: #f5f0ff; border-color: rgba(0, 255, 100, 0.06); }
+        button.secondary:hover:not(:disabled) { background: rgba(255,255,255,0.06); border-color: rgba(0, 255, 100, 0.15); transform: translateY(-2px); }
+        button.secondary:active:not(:disabled) { transform: scale(0.98); }
+
+        button.danger { background: rgba(255, 123, 156, 0.08); color: #ff7b9c; border: 1px solid rgba(255, 123, 156, 0.1); }
+        button.danger:hover:not(:disabled) { background: rgba(255, 123, 156, 0.15); border-color: rgba(255, 123, 156, 0.2); transform: translateY(-2px); }
+        button.danger:active:not(:disabled) { transform: scale(0.98); }
+
+        /* Status Banner */
+        .status-banner { 
+            font-size: 12px; 
+            padding: 12px 18px; 
+            border-radius: 12px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            margin-top: 20px; 
+            border: 1px solid transparent; 
+            line-height: 1.4;
+            backdrop-filter: blur(8px);
+            transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+            animation: bubblePop 0.5s ease forwards;
+            will-change: transform, opacity;
+        }
+        .status-banner i { flex-shrink: 0; width: 16px; height: 16px; }
+        .status-banner.info { background: rgba(0, 255, 100, 0.04); border-color: rgba(0, 255, 100, 0.06); color: #f5f0ff; }
+        .status-banner.success { background: rgba(0, 255, 100, 0.06); border-color: rgba(0, 255, 100, 0.12); color: #00ff66; }
+        .status-banner.error { background: rgba(255, 123, 156, 0.06); border-color: rgba(255, 123, 156, 0.1); color: #ff7b9c; }
+
+        /* Terminal */
+        .terminal-wrapper {
+            margin-top: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 100, 0.06);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 20px rgba(0,0,0,0.5);
+        }
+        .terminal-header {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(0, 255, 100, 0.06);
+            padding: 8px 14px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .term-dot { 
+            width: 10px; height: 10px; border-radius: 50%; 
+            transition: all 0.3s;
+            animation: dotPulse 2s ease-in-out infinite;
+        }
+        .term-dot.red { background: #ff5f56; animation-delay: 0s; }
+        .term-dot.yellow { background: #ffbd2e; animation-delay: 0.2s; }
+        .term-dot.green { background: #00ff66; animation-delay: 0.4s; }
+
+        @keyframes dotPulse {
+            0%, 100% { opacity: 0.4; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        .terminal {
+            padding: 16px;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            color: #a8a0c0;
+            height: 180px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.15);
+        }
+        .terminal-line { 
+            margin-bottom: 4px; 
+            line-height: 1.7; 
+            word-wrap: break-word;
+            animation: terminalSlide 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            will-change: transform, opacity;
+        }
+        @keyframes terminalSlide {
+            0% { opacity: 0; transform: translateX(-12px) scale(0.95); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        .term-time { color: #6a6288; margin-right: 8px; user-select: none; font-size: 10px; }
+        .term-info { color: #00ff66; font-weight: 500; }
+        .term-success { color: #00ff66; font-weight: 500; }
+        .term-error { color: #ff7b9c; font-weight: 500; }
+        .term-text { color: #f5f0ff; opacity: 0.85; }
+
+        .divider { 
+            height: 1px; 
+            background: linear-gradient(90deg, rgba(0, 255, 100, 0.1), transparent); 
+            margin: 28px 0; 
+            width: 100%; 
+            opacity: 0.5;
+        }
+
+        .terminal::-webkit-scrollbar { width: 5px; }
+        .terminal::-webkit-scrollbar-track { background: transparent; }
+        .terminal::-webkit-scrollbar-thumb { background: rgba(0, 255, 100, 0.1); border-radius: 10px; }
+        .terminal::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 100, 0.2); }
+
+        .session-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px 16px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(0, 255, 100, 0.06);
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            animation: bubblePop 0.5s ease forwards;
+            will-change: transform, border-color;
+        }
+        .session-item:hover {
+            border-color: rgba(0, 255, 100, 0.15);
+            transform: translateX(4px);
+            background: rgba(255,255,255,0.04);
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .lucide-spin { animation: spin 0.8s linear infinite; }
+
+        /* Mobile */
+        @media screen and (max-width: 600px) {
+            body { padding: 0; align-items: flex-start; }
+            .bubbles { display: none; }
+            .workspace-wrapper { padding: 0 0 20px 0; }
+            .workspace { 
+                min-height: 100vh; 
+                border-radius: 0; 
+                border: none; 
+                border-bottom: 1px solid rgba(0, 255, 100, 0.04);
+                padding: 20px 16px; 
+            }
+            .nav-container { 
+                position: sticky; 
+                top: 0; 
+                z-index: 20; 
+                background: rgba(7, 6, 14, 0.92); 
+                margin-top: -8px; 
+                padding: 8px;
+                border-radius: 14px;
+            }
+            .tab-btn { padding: 8px 12px; font-size: 11px; }
+            .tab-btn i { width: 14px; height: 14px; }
+            .header-section::after { width: 30px; }
+            .intro-progress-wrap { bottom: 20px; width: 200px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- INTRO OVERLAY — FULL VIDEO ONLY -->
+<!-- ============================================ -->
+<div id="introOverlay">
+    <!-- Video Background -->
+    <video id="introVideo" autoplay muted playsinline>
+        <source src="https://files.catbox.moe/0ghfic.mp4.mp4" type="video/mp4">
+    </video>
+    
+    <!-- Overlay tipis -->
+    <div class="intro-video-overlay"></div>
+    
+    <!-- Progress Bar -->
+    <div class="intro-progress-wrap">
+        <div class="intro-progress-bar"></div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- AMBIENT & BUBBLES -->
+<!-- ============================================ -->
+<div class="ambient-bg"></div>
+<div class="bubbles">
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+</div>
+
+<!-- ============================================ -->
+<!-- WORKSPACE WRAPPER -->
+<!-- ============================================ -->
+<div class="workspace-wrapper">
+    <div class="workspace" id="workspace">
+        
+        <div class="nav-container" id="mainNav">
+            <button class="tab-btn active" data-target="viewAuth"><i data-lucide="key"></i> Auth</button>
+            <button class="tab-btn hidden" id="tabController" data-target="viewController"><i data-lucide="terminal"></i> Console</button>
+            <button class="tab-btn hidden" id="tabAdmin" data-target="viewAdmin"><i data-lucide="shield-alert"></i> Mod</button>
+            <button class="tab-btn hidden" id="tabAutoReply" data-target="viewAutoReply"><i data-lucide="radio"></i> Responder</button>
+            <button class="tab-btn hidden" id="tabProfile" data-target="viewProfile"><i data-lucide="sliders-horizontal"></i> Config</button>
+        </div>
+
+        <!-- VIEW: AUTH -->
+        <div id="viewAuth" class="view-panel">
+            <div class="header-section">
+                <h2><i data-lucide="lock"></i> System Authentication</h2>
+                <p>Establish a secure session using the Telegram Bot API token.</p>
+            </div>
+            <label>Access Token</label>
+            <div class="input-row">
+                <input type="text" class="mono" id="tokenInput" placeholder="123456789:ABCdefGHIjklMNO..." autocomplete="off" />
+                <button class="primary" id="checkBtn"><i data-lucide="plug"></i> Connect</button>
+            </div>
+            <div id="statusBox" class="status-banner hidden"></div>
+            <div class="divider" style="margin: 32px 0 20px;"></div>
+            <label>Recent Sessions</label>
+            <div id="botListContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <!-- VIEW: CONSOLE -->
+        <div id="viewController" class="view-panel hidden">
+            <div class="header-section">
+                <h2><i data-lucide="terminal-square"></i> Command Console</h2>
+                <p>Execute payload delivery with media and interactive components.</p>
+            </div>
+            <label>Target Chat ID</label>
+            <input type="text" class="mono" id="targetChatId" placeholder="e.g. 123456789" style="margin-bottom: 20px;"/>
+            <label>Media Attachment</label>
+            <input type="file" id="fileInput" accept="image/*, .pdf, .zip, .doc, .docx" style="margin-bottom: 20px;" />
+            <label>Action Button Configuration (Optional)</label>
+            <div class="input-row" style="margin-bottom: 20px;">
+                <input type="text" id="btnText" placeholder="Button Label" autocomplete="off"/>
+                <input type="text" class="mono" id="btnUrl" placeholder="https://..." autocomplete="off"/>
+            </div>
+            <label>Transmission Payload</label>
+            <div class="input-row">
+                <input type="text" id="pesanInput" placeholder="Enter message or media caption..." autocomplete="off"/>
+                <button class="primary" id="kirimBtn"><i data-lucide="send"></i> Execute</button>
+            </div>
+            <div class="terminal-wrapper">
+                <div class="terminal-header">
+                    <div class="term-dot red"></div>
+                    <div class="term-dot yellow"></div>
+                    <div class="term-dot green"></div>
+                </div>
+                <div class="terminal" id="logArea"></div>
+            </div>
+        </div>
+
+        <!-- VIEW: MODERATION -->
+        <div id="viewAdmin" class="view-panel hidden">
+            <div class="header-section">
+                <h2><i data-lucide="shield"></i> Group Moderation</h2>
+                <p>Administrative control for groups and channels.</p>
+            </div>
+            <label>Target Identifier (Group/Channel ID)</label>
+            <input type="text" class="mono" id="adminChatId" placeholder="e.g. -100123456789" style="margin-bottom: 20px;"/>
+            <div class="input-row" style="margin-bottom: 20px;">
+                <button class="secondary" id="btnMemberCount" style="flex: 1;"><i data-lucide="users"></i> Fetch Member Count</button>
+            </div>
+            <div class="divider"></div>
+            <label>User Moderation</label>
+            <div class="input-row" style="margin-bottom: 20px;">
+                <input type="text" class="mono" id="banUserId" placeholder="Target User ID"/>
+                <button class="danger" id="btnBanUser"><i data-lucide="user-x"></i> Ban User</button>
+            </div>
+            <label>Message Management</label>
+            <div class="input-row">
+                <input type="text" class="mono" id="pinMsgId" placeholder="Target Message ID"/>
+                <button class="secondary" id="btnPinMsg"><i data-lucide="pin"></i> Pin Message</button>
+            </div>
+            <div id="adminStatus" class="status-banner hidden"></div>
+        </div>
+
+        <!-- VIEW: AUTO REPLY -->
+        <div id="viewAutoReply" class="view-panel hidden">
+            <div class="header-section">
+                <h2><i data-lucide="activity"></i> Auto Responder</h2>
+                <p>Background polling service for incoming requests.</p>
+            </div>
+            <label>Response Payload</label>
+            <textarea id="autoReplyText" rows="4" placeholder="Enter automated response..."></textarea>
+            <div class="input-row" style="margin-top: 16px;">
+                <button class="primary" id="startAutoBtn" style="flex: 1;"><i data-lucide="play"></i> Initialize Service</button>
+                <button class="danger hidden" id="stopAutoBtn" style="flex: 1;"><i data-lucide="square"></i> Terminate Service</button>
+            </div>
+            <div id="autoReplyStatus" class="status-banner info hidden" style="margin-top: 16px;"></div>
+            <div class="terminal-wrapper">
+                <div class="terminal-header">
+                    <div class="term-dot red"></div>
+                    <div class="term-dot yellow"></div>
+                    <div class="term-dot green"></div>
+                </div>
+                <div class="terminal" id="autoLogArea"></div>
+            </div>
+        </div>
+
+        <!-- VIEW: PROFILE -->
+        <div id="viewProfile" class="view-panel hidden">
+            <div class="header-section">
+                <h2><i data-lucide="settings"></i> System Configuration</h2>
+                <p>Modify bot metadata and network webhooks.</p>
+            </div>
+            <div class="input-group">
+                <label>Bot Name</label>
+                <input type="text" id="profName" placeholder="Display Name" />
+            </div>
+            <div class="input-group">
+                <label>Short Description (Profile)</label>
+                <textarea id="profShortDesc" rows="2" placeholder="Brief about text..."></textarea>
+            </div>
+            <div class="input-group">
+                <label>Full Description (Start Page)</label>
+                <textarea id="profDesc" rows="3" placeholder="What can this bot do?"></textarea>
+            </div>
+            <button class="primary" id="saveProfileBtn" style="width: 100%; margin-top: 8px;">
+                <i data-lucide="save"></i> Update Profile Metadata
+            </button>
+            <div class="divider"></div>
+            <label>Network Settings</label>
+            <button class="secondary" id="delWebhookBtn" style="width: 100%; color: #ff7b9c;">
+                <i data-lucide="unlink"></i> Terminate Active Webhook
+            </button>
+            <div id="profileStatus" class="status-banner hidden"></div>
+        </div>
+
+        <footer class="developer-credit" aria-label="Developer credit">
+            <span class="dev-label">DEVELOPER</span>
+            <strong>VanzLy official🦅</strong>
+            <a href="https://t.me/Vanzlyva" target="_blank" rel="noopener noreferrer">
+                <i data-lucide="send"></i> Telegram
+            </a>
+        </footer>
+    </div>
+</div>
+
+<style>
+.developer-credit {
+    margin-top: 26px;
+    padding: 18px 16px;
+    border: 1px solid rgba(0,255,100,.14);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(0,255,100,.07), rgba(255,255,255,.02));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 12px;
+}
+.developer-credit .dev-label {
+    color: #a8a0c0;
+    font-size: 9px;
+    letter-spacing: .18em;
+    width: 100%;
+}
+.developer-credit strong {
+    color: #f5f0ff;
+    letter-spacing: .04em;
+}
+.developer-credit a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #00ff66;
+    text-decoration: none;
+    border: 1px solid rgba(0,255,100,.2);
+    border-radius: 999px;
+    padding: 9px 13px;
+    background: rgba(0,255,100,.07);
+}
+.developer-credit a:hover {
+    background: rgba(0,255,100,.14);
+    transform: translateY(-1px);
+}
+.developer-credit a i { width: 14px; height: 14px; }
+</style>
+
+<script>
+    lucide.createIcons();
+
+    // ============================================
+    // INTRO HANDLER — VIDEO ONLY
+    // ============================================
+    const intro = document.getElementById('introOverlay');
+    const workspace = document.getElementById('workspace');
+    const video = document.getElementById('introVideo');
+
+    // Cek apakah video bisa diputar
+    video.addEventListener('error', function() {
+        // Jika video gagal, langsung hide intro setelah 2 detik
+        console.log('Video intro gagal dimuat, skip intro');
+        setTimeout(() => {
+            intro.classList.add('hide');
+            workspace.classList.add('visible');
+            setTimeout(() => {
+                intro.style.display = 'none';
+            }, 900);
+        }, 2000);
+    });
+
+    // Video mulai diputar
+    video.play().catch(function() {
+        console.log('Autoplay video diblokir, skip intro');
+        setTimeout(() => {
+            intro.classList.add('hide');
+            workspace.classList.add('visible');
+            setTimeout(() => {
+                intro.style.display = 'none';
+            }, 900);
+        }, 2000);
+    });
+
+    // Gunakan durasi video atau fallback 3 detik
+    let introDuration = 3000;
+
+    video.addEventListener('loadedmetadata', function() {
+        introDuration = (video.duration * 1000) + 500;
+        if (introDuration > 8000) introDuration = 8000;
+        if (introDuration < 2000) introDuration = 3000;
+        
+        // Update progress bar
+        const progressBar = document.querySelector('.intro-progress-bar');
+        const startTime = Date.now();
+        
+        function updateProgress() {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min((elapsed / introDuration) * 100, 100);
+            progressBar.style.width = progress + '%';
+            
+            if (progress < 100) {
+                requestAnimationFrame(updateProgress);
+            }
+        }
+        requestAnimationFrame(updateProgress);
+    });
+
+    // Hide intro setelah durasi selesai
+    setTimeout(() => {
+        intro.classList.add('hide');
+        workspace.classList.add('visible');
+        setTimeout(() => {
+            intro.style.display = 'none';
+            video.pause();
+        }, 900);
+    }, introDuration);
+
+    // ============================================
+    // APP LOGIC
+    // ============================================
+    let currentToken = '';
+    let autoReplyActive = false;
+    let lastUpdateId = 0;
+    let autoTimer = null;
+
+    const views = document.querySelectorAll('.view-panel');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if(btn.classList.contains('hidden')) return;
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const target = btn.getAttribute('data-target');
+            views.forEach(v => {
+                v.classList.add('hidden');
+                v.classList.remove('view-panel');
+                void v.offsetWidth;
+                v.classList.add('view-panel');
+            });
+            const targetView = document.getElementById(target);
+            targetView.classList.remove('hidden');
+            targetView.classList.remove('view-panel');
+            void targetView.offsetWidth;
+            targetView.classList.add('view-panel');
+        });
+    });
+
+    function setLoading(btnId, isLoading, originalText, iconName) {
+        const btn = document.getElementById(btnId);
+        if (isLoading) {
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="loader-2" class="lucide-spin"></i> Processing...`;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="${iconName}"></i> ${originalText}`;
+        }
+        lucide.createIcons();
+    }
+
+    function setStatus(el, msg, type = 'info', iconName = 'info') {
+        el.className = `status-banner ${type}`;
+        el.innerHTML = `<i data-lucide="${iconName}"></i> <span>${msg}</span>`;
+        el.classList.remove('hidden');
+        lucide.createIcons();
+    }
+
+    function getTimestamp() {
+        const d = new Date();
+        return `[${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}]`;
+    }
+
+    function termLog(areaId, type, text) {
+        const area = document.getElementById(areaId);
+        const div = document.createElement('div');
+        div.className = 'terminal-line';
+        let cClass = 'term-info';
+        if(type === 'SUCCESS') cClass = 'term-success';
+        if(type === 'ERROR') cClass = 'term-error';
+        div.innerHTML = `<span class="term-time">${getTimestamp()}</span> <span class="${cClass}">[${type}]</span> <span class="term-text">${text}</span>`;
+        area.appendChild(div);
+        area.scrollTop = area.scrollHeight;
+    }
+
+    async function apiCall(method, params = {}) {
+        const url = new URL(`https://api.telegram.org/bot${currentToken}/${method}`);
+        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+        try {
+            const res = await fetch(url);
+            return await res.json();
+        } catch(e) { return { ok: false, description: "Network error or CORS issue" }; }
+    }
+
+    // AUTH
+    document.getElementById('checkBtn').addEventListener('click', async () => {
+        const token = document.getElementById('tokenInput').value.trim();
+        if(!token) return setStatus(document.getElementById('statusBox'), 'Access token is required.', 'error', 'alert-circle');
+        setLoading('checkBtn', true);
+        currentToken = token;
+        const res = await apiCall('getMe');
+        if(!res.ok) {
+            currentToken = '';
+            setLoading('checkBtn', false, 'Connect', 'plug');
+            return setStatus(document.getElementById('statusBox'), `Authentication Failed: ${res.description}`, 'error', 'x-circle');
+        }
+        setStatus(document.getElementById('statusBox'), `Authenticated: ${res.result.first_name}`, 'success', 'check-circle');
+        saveBot(token, res.result);
+        document.getElementById('tabController').classList.remove('hidden');
+        document.getElementById('tabAdmin').classList.remove('hidden');
+        document.getElementById('tabAutoReply').classList.remove('hidden');
+        document.getElementById('tabProfile').classList.remove('hidden');
+        const updates = await apiCall('getUpdates', {limit: 1, offset: -1});
+        if(updates.ok && updates.result.length > 0) {
+            const msg = updates.result[0].message || updates.result[0].callback_query?.message;
+            if(msg) document.getElementById('targetChatId').value = msg.chat.id;
+        }
+        termLog('logArea', 'SYS', 'Environment initialized.');
+        termLog('autoLogArea', 'SYS', 'Service daemon idle.');
+        setLoading('checkBtn', false, 'Connected', 'check');
+    });
+
+    // CONSOLE
+    document.getElementById('kirimBtn').addEventListener('click', async () => {
+        const chatId = document.getElementById('targetChatId').value.trim();
+        const text = document.getElementById('pesanInput').value.trim();
+        const btnText = document.getElementById('btnText').value.trim();
+        const btnUrl = document.getElementById('btnUrl').value.trim();
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        if(!chatId) return termLog('logArea', 'ERROR', 'Target Chat ID is missing.');
+        if(!text && !file) return termLog('logArea', 'ERROR', 'Payload or attachment is required.');
+        setLoading('kirimBtn', true);
+        let replyMarkupStr = '';
+        if (btnText && btnUrl) {
+            replyMarkupStr = JSON.stringify({ inline_keyboard: [[{ text: btnText, url: btnUrl }]] });
+        }
+        termLog('logArea', 'INFO', `Transmitting to ${chatId}...`);
+        if (file) {
+            const formData = new FormData();
+            formData.append('chat_id', chatId);
+            if (text) formData.append('caption', text);
+            if (replyMarkupStr) formData.append('reply_markup', replyMarkupStr);
+            let method = file.type.startsWith('image/') ? 'sendPhoto' : 'sendDocument';
+            formData.append(method === 'sendPhoto' ? 'photo' : 'document', file);
+            try {
+                const uploadRes = await fetch(`https://api.telegram.org/bot${currentToken}/${method}`, { method: 'POST', body: formData });
+                const data = await uploadRes.json();
+                if (data.ok) {
+                    termLog('logArea', 'SUCCESS', `Payload delivered with attachment.`);
+                    document.getElementById('pesanInput').value = '';
+                    fileInput.value = '';
+                } else {
+                    termLog('logArea', 'ERROR', `Execution failed: ${data.description}`);
+                }
+            } catch (error) {
+                termLog('logArea', 'ERROR', 'Network sequence aborted.');
+            }
+        } else {
+            const params = {chat_id: chatId, text: text, parse_mode: 'HTML'};
+            if (replyMarkupStr) params.reply_markup = replyMarkupStr;
+            const res = await apiCall('sendMessage', params);
+            if(res.ok) {
+                termLog('logArea', 'SUCCESS', `Text payload delivered.`);
+                document.getElementById('pesanInput').value = '';
+            } else {
+                termLog('logArea', 'ERROR', `Execution failed: ${res.description}`);
+            }
+        }
+        setLoading('kirimBtn', false, 'Execute', 'send');
+    });
+
+    // MODERATION
+    const adminStatus = document.getElementById('adminStatus');
+    document.getElementById('btnMemberCount').addEventListener('click', async () => {
+        const chatId = document.getElementById('adminChatId').value.trim();
+        if(!chatId) return setStatus(adminStatus, 'Group ID required.', 'error', 'alert-circle');
+        setLoading('btnMemberCount', true);
+        const res = await apiCall('getChatMemberCount', {chat_id: chatId});
+        if(res.ok) setStatus(adminStatus, `Active members: ${res.result}`, 'success', 'users');
+        else setStatus(adminStatus, `Query failed: ${res.description}`, 'error', 'x-circle');
+        setLoading('btnMemberCount', false, 'Fetch Member Count', 'users');
+    });
+
+    document.getElementById('btnBanUser').addEventListener('click', async () => {
+        const chatId = document.getElementById('adminChatId').value.trim();
+        const userId = document.getElementById('banUserId').value.trim();
+        if(!chatId || !userId) return setStatus(adminStatus, 'Group ID & User ID required.', 'error', 'alert-circle');
+        setLoading('btnBanUser', true);
+        const res = await apiCall('banChatMember', {chat_id: chatId, user_id: userId});
+        if(res.ok) setStatus(adminStatus, `Target ${userId} eliminated.`, 'success', 'user-x');
+        else setStatus(adminStatus, `Action denied: ${res.description}`, 'error', 'x-circle');
+        setLoading('btnBanUser', false, 'Ban User', 'user-x');
+    });
+
+    document.getElementById('btnPinMsg').addEventListener('click', async () => {
+        const chatId = document.getElementById('adminChatId').value.trim();
+        const msgId = document.getElementById('pinMsgId').value.trim();
+        if(!chatId || !msgId) return setStatus(adminStatus, 'Group ID & Message ID required.', 'error', 'alert-circle');
+        setLoading('btnPinMsg', true);
+        const res = await apiCall('pinChatMessage', {chat_id: chatId, message_id: msgId});
+        if(res.ok) setStatus(adminStatus, `Message pinned.`, 'success', 'pin');
+        else setStatus(adminStatus, `Action denied: ${res.description}`, 'error', 'x-circle');
+        setLoading('btnPinMsg', false, 'Pin Message', 'pin');
+    });
+
+    // AUTO REPLY
+    const startAutoBtn = document.getElementById('startAutoBtn');
+    const stopAutoBtn = document.getElementById('stopAutoBtn');
+    const autoStatus = document.getElementById('autoReplyStatus');
+
+    async function pollUpdates() {
+        if(!autoReplyActive) return;
+        const textToReply = document.getElementById('autoReplyText').value.trim();
+        if(!textToReply) {
+            termLog('autoLogArea', 'ERROR', 'Payload missing. Terminating.');
+            stopAutoBtn.click();
+            return;
+        }
+        try {
+            const res = await apiCall('getUpdates', {offset: lastUpdateId + 1, timeout: 10});
+            if(res.ok && res.result.length > 0) {
+                for(let u of res.result) {
+                    lastUpdateId = u.update_id;
+                    if(u.message && u.message.text) {
+                        const fromName = u.message.from.first_name;
+                        const chatId = u.message.chat.id;
+                        termLog('autoLogArea', 'INFO', `Incoming from ${fromName}`);
+                        const replyRes = await apiCall('sendMessage', {chat_id: chatId, text: textToReply});
+                        if(replyRes.ok) termLog('autoLogArea', 'SUCCESS', `Response to ${fromName}`);
+                        else termLog('autoLogArea', 'ERROR', `Dispatch failed: ${replyRes.description}`);
+                    }
+                }
+            } else if (!res.ok && res.description.includes('webhook')) {
+                termLog('autoLogArea', 'ERROR', 'Webhook conflict. Terminate via Config.');
+                stopAutoBtn.click();
+                return;
+            }
+        } catch(e) {}
+        if(autoReplyActive) autoTimer = setTimeout(pollUpdates, 1500);
+    }
+
+    startAutoBtn.addEventListener('click', async () => {
+        if(!document.getElementById('autoReplyText').value.trim()) return setStatus(autoStatus, 'Payload cannot be empty', 'error', 'alert-circle');
+        const initial = await apiCall('getUpdates', {offset: -1});
+        if(initial.ok && initial.result.length > 0) lastUpdateId = initial.result[0].update_id;
+        autoReplyActive = true;
+        startAutoBtn.classList.add('hidden');
+        stopAutoBtn.classList.remove('hidden');
+        setStatus(autoStatus, 'Polling service active.', 'info', 'activity');
+        termLog('autoLogArea', 'SYS', 'Service activated. Listening...');
+        pollUpdates();
+    });
+
+    stopAutoBtn.addEventListener('click', () => {
+        autoReplyActive = false;
+        clearTimeout(autoTimer);
+        stopAutoBtn.classList.add('hidden');
+        startAutoBtn.classList.remove('hidden');
+        setStatus(autoStatus, 'Service terminated.', 'info', 'square');
+        termLog('autoLogArea', 'SYS', 'Service halted.');
+    });
+
+    // PROFILE
+    document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+        const pStat = document.getElementById('profileStatus');
+        setLoading('saveProfileBtn', true);
+        const name = document.getElementById('profName').value.trim();
+        const desc = document.getElementById('profDesc').value.trim();
+        const shortDesc = document.getElementById('profShortDesc').value.trim();
+        let errors = [];
+        if(name) {
+            const r1 = await apiCall('setMyName', {name});
+            if(!r1.ok) errors.push(`Name: ${r1.description}`);
+        }
+        if(desc || desc === "") {
+            const r2 = await apiCall('setMyDescription', {description: desc});
+            if(!r2.ok) errors.push(`Desc: ${r2.description}`);
+        }
+        if(shortDesc || shortDesc === "") {
+            const r3 = await apiCall('setMyShortDescription', {short_description: shortDesc});
+            if(!r3.ok) errors.push(`ShortDesc: ${r3.description}`);
+        }
+        if(errors.length > 0) setStatus(pStat, `Issues: ${errors.join(' | ')}`, 'error', 'alert-triangle');
+        else setStatus(pStat, 'Metadata synchronized.', 'success', 'check');
+        setLoading('saveProfileBtn', false, 'Update Profile Metadata', 'save');
+    });
+
+    document.getElementById('delWebhookBtn').addEventListener('click', async () => {
+        const pStat = document.getElementById('profileStatus');
+        setLoading('delWebhookBtn', true);
+        const res = await apiCall('deleteWebhook');
+        if(res.ok) setStatus(pStat, 'Webhook destroyed.', 'success', 'check-circle');
+        else setStatus(pStat, `Termination failed: ${res.description}`, 'error', 'alert-triangle');
+        setLoading('delWebhookBtn', false, 'Terminate Active Webhook', 'unlink');
+    });
+
+    // LOCAL STORAGE
+    function saveBot(token, data) {
+        let bots = JSON.parse(localStorage.getItem('sys_bots_v2') || '[]');
+        const idx = bots.findIndex(b => b.token === token);
+        const nw = { token, id: data.id, name: data.first_name };
+        if(idx !== -1) bots[idx] = nw; else bots.push(nw);
+        localStorage.setItem('sys_bots_v2', JSON.stringify(bots));
+        renderList();
+    }
+
+    function renderList() {
+        const box = document.getElementById('botListContainer');
+        const bots = JSON.parse(localStorage.getItem('sys_bots_v2') || '[]');
+        box.innerHTML = '';
+        bots.forEach(b => {
+            const div = document.createElement('div');
+            div.className = 'session-item';
+            div.innerHTML = `
+                <div>
+                    <div style="font-size: 13px; font-weight: 500;">${b.name}</div>
+                    <div style="font-size: 11px; color: #6a6288; font-family: 'Fira Code', monospace; margin-top: 2px;">ID: ${b.id}</div>
+                </div>
+                <button class="secondary" style="padding: 6px 14px; font-size: 11px;" onclick="loadToken('${b.token}')">Load</button>
+            `;
+            box.appendChild(div);
+        });
+    }
+
+    window.loadToken = (t) => {
+        document.getElementById('tokenInput').value = t;
+        document.getElementById('checkBtn').click();
+    };
+
+    renderList();
+
+    // Fix initial animation
+    document.querySelectorAll('.view-panel').forEach(el => {
+        el.classList.remove('view-panel');
+        void el.offsetWidth;
+        el.classList.add('view-panel');
+    });
+
+    // Mouse tracking for button glow
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('mousemove', (e) => {
+            const rect = btn.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            btn.style.setProperty('--mouse-x', x + '%');
+            btn.style.setProperty('--mouse-y', y + '%');
+        });
+    });
+
+</script>
+</body>
+</html>
